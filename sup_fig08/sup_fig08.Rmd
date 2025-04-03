@@ -9,10 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 # Load libraries
-library(tidyverse)
-library(ggplot2)
-library(dplyr)
-library(emmeans)
+library(tidyverse) # v2.0.0
+library(ggplot2) # v3.5.1
+library(dplyr) # v1.1.4
+library(emmeans) # v1.10.0
 
 # Set colorscales
 age_group_cscale <- scale_color_manual(values = c("#643f95", "#549e3e"))

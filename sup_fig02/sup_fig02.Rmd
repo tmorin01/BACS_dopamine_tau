@@ -8,9 +8,9 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-library(tidyverse)
-library(ggplot2)
-library(lubridate)
+library(tidyverse) # v2.0.0
+library(ggplot2) # v3.5.1
+library(lubridate) # v1.9.2
 
 alldates <- read_csv('data_sup_fig02.csv')
 ```

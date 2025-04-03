@@ -11,12 +11,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, echo = FALSE}
 # Load Libraries
-library(tidyverse)
-library(ggpubr)
-library(rstatix)
-library(lme4)
-library(lmerTest)
-library(emmeans)
+library(tidyverse) # v2.0.0
+library(ggpubr) # v0.6.0
+library(rstatix) # v0.7.2
+library(lme4) # v1.1.32
+library(lmerTest) # v3.1.3
+library(lsmeans) #2.30.2
 
 # Set colorscales
 npg_pal <- get_palette(palette = 'npg', 3)

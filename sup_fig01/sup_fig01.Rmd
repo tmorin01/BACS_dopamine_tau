@@ -8,7 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-library(tidyverse)
+library(tidyverse) # v2.0.0
 
 df <- read_csv('data_sup_fig01.csv')
 ```
