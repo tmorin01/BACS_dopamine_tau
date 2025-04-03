@@ -1,0 +1,230 @@
+---
+title: "Fig. 2 - FMT vs. Memory"
+author: "Tom Morin"
+date: "2025-04-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE}
+# Load Libraries
+library(tidyverse)
+library(ggpubr)
+library(lme4)
+library(lmerTest)
+library(rstatix)
+library(emmeans)
+library(lsmeans)
+
+# Set colorscales
+biomarker_group_cscale <- scale_color_manual(values = c("#549e3e", "#323690", "#B6357B"))
+biomarker_group_fscale <- scale_fill_manual(values = c("#549e3e", "#323690", "#B6357B"))
+
+# Read in data
+data_BCD <- read_csv('data_fig2bcd.csv')
+data_E <- read_csv('data_fig2e.csv')
+
+data_E$biomarker_group <- factor(data_E$biomarker_group,
+                                 levels = c('Younger\nAdults',
+                                            'Normal\nAging',
+                                            'Preclinical\nAD'))
+```
+
+## Plot Panel B: FMT vs. Age Group
+```{r, echo = FALSE}
+# Panel B
+figB <- ggbarplot(data_BCD, 
+          x = 'age_group', 
+          y = 'fmt_ki_vst', 
+          fill = 'age_group', 
+          color = 'black', 
+          alpha = 0.5,
+          palette = c("#549e3e", "#643f95"), 
+          add = c('mean_se'), 
+          legend = 'none',
+          order = c('Younger\nAdults', 'Older\nAdults')) +
+          geom_jitter(aes(color = age_group, 
+                          fill = age_group, 
+                          alpha = 0.5),
+                          position = position_jitterdodge(0.7))
+
+age.stat.test <- data_BCD %>% t_test(fmt_ki_vst ~ age_group, detailed = TRUE)
+age.stat.test.p <- age.stat.test %>%
+  add_xy_position(x = 'age_group', fun = 'mean_se', dodge = 0.8)
+age.stat.test.p <- age.stat.test.p %>% mutate(sig = case_when(p < 0.05 ~ '*',
+                                                              p >= 0.05 ~ ''))
+
+figB <- figB + stat_pvalue_manual(age.stat.test.p, label = 'sig', tip.length = 0.03, 
+                       step.increase = 0.08, y.position = 0.03,
+                       size = 8, bracket_size = 1, hide.ns = T) + 
+    xlab('') + 
+    ylab('[18F]FMT Ki\n Ventral Striatum)') +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+    theme_classic() +
+    theme(panel.background = element_blank(),
+        axis.line = element_line(color = 'black'),
+        legend.position = 'none', 
+        axis.text.x = element_text(color = 'black', size = 10),
+        axis.text.y = element_text(color = 'black', size = 10),
+        axis.title.x = element_text(color = 'black', size = 12),
+        axis.title.y = element_text(color = 'black', size = 12),
+        legend.title = element_blank())
+figB
+```
+
+## Does FMT signal differ across age groups? Across biomarker groups?
+```{r}
+# Test for difference in FMT signal based on age group
+age.stat.test <- data_BCD %>% 
+    t_test(fmt_ki_vst ~ age_group, detailed = TRUE)
+age.stat.test.p <- age.stat.test %>% mutate(sig = case_when(p < 0.05 ~ '*',
+                                                        p >= 0.05 ~ ''))
+age.stat.test
+
+# Test for difference in FMT signal based on preclinical AD status
+biomarker.stat.test <- data_BCD %>% 
+    t_test(fmt_ki_vst ~ biomarker_group, detailed = TRUE)
+biomarker.stat.test.p <- biomarker.stat.test %>% mutate(sig = case_when(p < 0.05 ~ '*',
+                                                        p >= 0.05 ~ ''))
+biomarker.stat.test
+```
+
+## Plot Panel C: FMT vs. PiB
+```{r, echo = FALSE}
+# Panel C: Plot FMT vs. FTP
+figC <- data_BCD %>% filter(age_group == 'Older\nAdults') %>%
+  ggplot(aes(y = pib_dvr, x = fmt_ki_vst)) +
+  geom_point(color = "#643f95", fill = "#643f95", alpha = 0.5) +
+  geom_smooth(method = 'lm', color = "#643f95", fill = "#643f95",
+              linewidth = 2, level = 0.9) +
+  theme_classic() +
+  ylab('[18F]PiB DVR\n(Cortex)') +
+  xlab('[18F]FMT Ki\n(Ventral Striatum)') +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      legend.position = 'bottom', 
+      axis.text.x = element_text(color = 'black', size = 10),
+      axis.text.y = element_text(color = 'black', size = 10),
+      axis.title.x = element_text(color = 'black', size = 12),
+      axis.title.y = element_text(color = 'black', size = 12),
+      legend.title = element_blank())
+
+figC
+```
+
+## Is FMT signal related to PiB signal?
+```{r, echo = FALSE}
+mod <- lm(fmt_ki_vst ~ pib_dvr + age + sex + yrs_edu,
+          data = data_BCD)
+summary(mod)
+```
+
+## Plot Panel D: FMT vs. Tau
+```{r, echo = FALSE}
+# Panel D: Plot FMT vs. FTP
+figD <- data_BCD %>% filter(age_group == 'Older\nAdults') %>%
+  ggplot(aes(y = ftp_braak34_suvr, x = fmt_ki_vst)) +
+  geom_point(color = "#643f95", fill = "#643f95", alpha = 0.5) +
+  geom_smooth(method = 'lm', color = "#643f95", fill = "#643f95",
+              linewidth = 2, level = 0.9) +
+  theme_classic() +
+  ylab('[18F]FTP SUVR\n(Braak 3/4 Regions)') +
+  xlab('[18F]FMT Ki\n(Ventral Striatum)') +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      legend.position = 'bottom', 
+      axis.text.x = element_text(color = 'black', size = 10),
+      axis.text.y = element_text(color = 'black', size = 10),
+      axis.title.x = element_text(color = 'black', size = 12),
+      axis.title.y = element_text(color = 'black', size = 12),
+      legend.title = element_blank())
+
+figD
+```
+
+## Is FMT signal related to FTP signal?
+```{r, echo = FALSE}
+mod <- lm(fmt_ki_vst ~ ftp_braak34_suvr + age + sex + yrs_edu,
+          data = data_BCD)
+summary(mod)
+```
+
+## Plot Panel E: FMT signal vs. Memory, Faceted by Valence and Biomarker Group
+```{r, echo = FALSE}
+# Panel E: Plot FMT by d' across each valence
+figE <- data_E %>% filter(!is.na(valence)) %>%
+  ggplot(aes(x = fmt_ki_vst, y = dprime, group = biomarker_group,
+             color = biomarker_group)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(aes(color = biomarker_group, fill = biomarker_group),
+                  method = 'lm', linewidth = 2, level = 0.9) +
+  biomarker_group_cscale +
+  biomarker_group_fscale +
+  theme_classic() +
+  xlab(bquote('[18F]FMT Ki\n(Ventral Striatum)')) +
+  ylab('d\'') +
+  facet_wrap(.~valence, nrow = 1) +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      legend.position = 'bottom', 
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 12),
+      axis.title.y = element_text(color = 'black', size = 12),
+      legend.title = element_blank())
+
+figE
+```
+
+## Is FMT signal related to memory performance? Does this differ by valence or biomarker group?
+
+### Initial analysis in Young Adults only
+```{r, echo = FALSE}
+lme0 <- lmer(dprime ~ fmt_ki_vst*valence + (1 | subject),
+             data_E %>% filter(age_group == 'Younger\nAdults'))
+summary(lme0)
+```
+
+### Initial analysis in Older Adults only
+```{r, echo = FALSE}
+lme0 <- lmer(dprime ~ fmt_ki_vst*valence + (1 | subject),
+             data_E %>% filter(age_group == 'Older\nAdults'))
+summary(lme0)
+```
+
+### Test for effects of FMT, biomarker group, valence, and interactions on memory
+```{r, echo = FALSE}
+# Stats for Panel E:
+lme1 <- lmer(dprime ~ fmt_ki_vst*biomarker_group + valence*biomarker_group + (1 | subject),
+             data_E)
+summary(lme1)
+
+print('============================== LME 1 POSTHOC TESTS ==============================')
+slopes <- lstrends(lme1, ~ biomarker_group, var = 'fmt_ki_vst')
+summary(slopes, infer=TRUE)
+```
+
+### Repeat model, accounting for learning performance
+```{r, echo = FALSE}
+lme2 <- lmer(dprime ~ fmt_ki_vst*biomarker_group + valence*biomarker_group + learning + (1 | subject),
+             data_E)
+summary(lme2)
+
+print('============================== LME 2 POSTHOC TESTS ==============================')
+slopes <- lstrends(lme2, ~ biomarker_group, var = 'fmt_ki_vst')
+summary(slopes, infer=TRUE)
+```
+
+## Plot complete Figure 2
+```{r, echo = FALSE}
+# Combined Panels
+fmt_fig <- ggarrange(ggarrange(figB, figB, labels = c('A', 'B'), ncol = 2), 
+                     ggarrange(figC, figD, labels = c('C', 'D'), ncol = 2),
+          figE, nrow = 3, labels = c('', '', 'E'), heights = c(1, 1, 1.3))
+
+ggsave(fmt_fig, filename = 'fmt_fig.pdf', width = 5, height = 8, units = 'in')
+fmt_fig
+```

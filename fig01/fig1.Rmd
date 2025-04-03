@@ -1,0 +1,161 @@
+---
+title: "Figure 1 - Subsequent Memory"
+author: "Tom Morin"
+date: "2025-04-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE}
+# Load Libraries
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+
+# Set colorscales
+npg_pal <- get_palette(palette = 'npg', 3)
+npg_RL <- c(npg_pal[1], npg_pal[3])
+
+# Read in data
+df <- read_csv('data_fig1.csv')
+df$age_group <- factor(df$age_group, levels = c('Younger\nAdults',
+                                                    'Older\nAdults'))
+df$biomarker_group <- factor(df$biomarker_group, levels = c('Younger\nAdults',
+                                                        'Normal\nAging',
+                                                        'Preclinical\nAD'))
+data_C <- df
+data_D <- df
+```
+# How does memory differ across valence/age-group?
+```{r}
+# PANEL C: Stats
+print("+---------- Linear Mixed Effects Model ----------+")
+dprime_mod <- lmer(dprime ~ age_group*valence + (1 | subject), 
+                   data_C)
+summary(dprime_mod)
+
+print("+---------- Post-Hoc Paired T-test Tests ----------+")
+emm1 = emmeans(dprime_mod, specs = pairwise ~ valence|age_group,
+               type = 'repsonse', adjust = 'none')
+emm1_contrasts <- emm1$contrasts %>% rbind(adjust = 'none')
+emm1_contrasts <- as.data.frame(emm1_contrasts) %>% 
+  separate(col = contrast, into = c('group1', 'group2'), sep = ' - ') %>%
+  filter(p.value < 0.05) %>%
+  mutate(sig = case_when(p.value < 0.05 ~ '*')) %>%
+  add_xy_position(data = data_C, formula = dprime ~ age_group,
+                  x = "age_group", group = 'valence', fun = "mean_se", dodge = 0.8)
+emm1$contrasts
+```
+
+# Follow-up model that accounts for performance on the learning phase of the tast:
+```{r}
+print("+---------- Linear Mixed Effects Model (control for learning) ----------+")
+dprime_mod <- lmer(dprime ~ age_group*valence + learning_accuracy + (1 | subject), 
+                   data_C)
+summary(dprime_mod)
+
+print("+---------- Paired T-test Post-Hoc Tests ----------+")
+emm2 = emmeans(dprime_mod, specs = pairwise ~ valence|age_group,
+               type = 'repsonse', adjust = 'none')
+emm2$contrasts
+```
+# Plot Figure 1, Panel C
+```{r, echo = FALSE}
+figC <- ggbarplot(data_C, 
+               x = "age_group", 
+               y = "dprime", 
+               fill = "valence",
+               alpha = 0.7,
+               palette = "npg", 
+               add = "mean_se", 
+               xlab = "",
+               ylab = "d\'",
+               ylim = c(-0.45, 3.2),
+               position = position_dodge(0.8)) +
+        geom_hline(yintercept = 0) +
+        geom_jitter(aes(color = valence, fill = valence), alpha = 0.5,
+              position = position_jitterdodge(0.1))
+figC <- figC + stat_pvalue_manual(emm1_contrasts, label = 'sig', 
+                                  tip.length = 0.01, step.increase = 0.08, 
+                                  y.position = 2.5, size = 8) +
+        theme(legend.position = 'none')
+figC
+```
+
+# How does memory differ across valence/biomarker group for older adults?
+```{r}
+# PANEL D: Stats
+print("+---------- Linear Mixed Effects Model ----------+")
+dprime_mod <- lmer(dprime ~ valence*biomarker_group + age + sex + yrs_edu + (1 | subject), 
+                   data_D %>% filter(biomarker_group != 'Younger\nAdults'))
+summary(dprime_mod)
+
+print("+---------- Post-Hoc Paired T-test Tests ----------+")
+emm1 = emmeans(dprime_mod, specs = pairwise ~ valence|biomarker_group,
+               type = 'repsonse', adjust = 'none')
+emm1_contrasts <- emm1$contrasts %>% rbind(adjust = 'none')
+emm1_contrasts <- as.data.frame(emm1_contrasts) %>% 
+  separate(col = contrast, into = c('group1', 'group2'), sep = ' - ') %>%
+  filter(p.value < 0.05) %>%
+  mutate(sig = case_when(p.value < 0.05 ~ '*')) %>%
+  add_xy_position(data = data_C, formula = dprime ~ age_group,
+                  x = "age_group", group = 'valence', fun = "mean_se", dodge = 0.8)
+emm1$contrasts
+```
+
+# Follow-up model that accounts for performance on the learning phase of the tast:
+```{r}
+print("+---------- Linear Mixed Effects Model control for learning ----------+")
+dprime_mod <- lmer(dprime ~ valence*biomarker_group + learning_accuracy + age + sex + yrs_edu + (1 | subject), 
+                   data_D %>% filter(biomarker_group != 'Younger\nAdults'))
+summary(dprime_mod)
+
+print("+---------- Post-Hoc Paired T-test Tests ----------+")
+emm2 = emmeans(dprime_mod, specs = pairwise ~ valence|biomarker_group,
+               type = 'repsonse', adjust = 'none')
+emm2$contrasts
+```
+
+# Plot Figure 1, Panel D
+```{r, echo = FALSE}
+data_D <- data_D %>% filter(biomarker_group != 'Younger\nAdults')
+data_D$biomarker_group <- factor(data_D$biomarker_group, 
+                                 levels = c('Normal\nAging', 'Preclinical\nAD'))
+figD <- ggbarplot(data_D, 
+               x = "biomarker_group", 
+               y = "dprime", 
+               fill = "valence",
+               alpha = 0.7,
+               palette = "npg", 
+               add = "mean_se", 
+               xlab = "",
+               ylab = "d\'",
+               ylim = c(-0.45, 3.2),
+               position = position_dodge(0.8)) +
+        geom_hline(yintercept = 0) +
+        geom_jitter(aes(color = valence, fill = valence), alpha = 0.5,
+              position = position_jitterdodge(0.1)) +
+        theme(legend.position = 'none')
+# No significant differences in post-hoc test
+#figD <- figD + stat_pvalue_manual(emm1_contrasts, label = 'sig', tip.length = 0.01,
+#                       step.increase = 0.08, y.position = 2.5, size = 8)
+
+figD
+```
+
+# Plot full Figure 1, Panels C and D
+```{r, echo = FALSE}
+behavioral_fig <- ggarrange(figC, figD,
+          ncol = 2,
+          labels = c('C', 'D'))
+
+ggsave(behavioral_fig, filename = 'fig1.pdf', width = 6.5, height = 2.5, units = 'in')
+
+behavioral_fig
+```

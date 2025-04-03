@@ -1,0 +1,81 @@
+---
+title: "Fig. S2 - Data Collection Timeline"
+author: "Tom Morin"
+date: "2025-04-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+
+alldates <- read_csv('data_sup_fig02.csv')
+```
+
+
+## Plot Timelines
+```{r, echo = FALSE}
+alldates$pib_date <- strptime(as.character(alldates$pib_date), "%m/%d/%Y")
+alldates$pib_date <- alldates$pib_date %m+% years(2000)
+alldates$tau_date <- strptime(as.character(alldates$tau_date), "%m/%d/%Y")
+alldates$tau_date <- alldates$tau_date %m+% years(2000)
+alldates$fmri_date <- strptime(as.character(alldates$fmri_date), "%m/%d/%Y")
+alldates$fmri_date <- alldates$fmri_date %m+% years(2000)
+alldates$fmt_date <- strptime(as.character(alldates$fmt_date), "%m/%d/%Y")
+alldates$fmt_date <- alldates$fmt_date %m+% years(2000)
+
+# Get time difference from fMRI scan
+alldates$pib_dist <- round(as.numeric(difftime(alldates$pib_date, 
+                                               alldates$fmri_date, units='days')))
+alldates$ftp_dist <- round(as.numeric(difftime(alldates$tau_date, 
+                                               alldates$fmri_date, units='days')))
+alldates$fmt_dist <- round(as.numeric(difftime(alldates$fmt_date, 
+                                               alldates$fmri_date, units='days')))
+alldates$fmri_dist <- 0
+
+# Pivot to long format for plotting
+alldates <- alldates %>% select(subject, age_group, fmri_dist, pib_dist, 
+                                ftp_dist, fmt_dist)
+alldates <- alldates %>%
+  pivot_longer(cols = c('fmri_dist', 'pib_dist', 'ftp_dist', 'fmt_dist'),
+               names_to = c('modality'),
+               values_to = c('time_diff'))
+
+# Plot timelines
+fig <- alldates %>%
+  ggplot(aes(x=time_diff, y=subject, group=subject, color=modality, fill=modality)) +
+  geom_line(aes(group = subject), color="grey") +
+  geom_point(aes(shape = modality), alpha = 0.8, size=2.5) +
+  #facet_wrap(age_group~.) +
+  xlab('Time Difference (Days)') +
+  ylab('Subject') +
+  scale_color_discrete(labels = c('fMRI', "[18F]FMT", '[18F]Flortaucipir', 
+                                 '[11C]PiB')) +
+  scale_fill_discrete(labels = c('fMRI', "[18F]FMT", '[18F]Flortaucipir', 
+                                  '[11C]PiB')) +
+  scale_shape_discrete(labels = c('fMRI', "[18F]FMT", '[18F]Flortaucipir', 
+                                  '[11C]PiB')) +
+  theme_classic() +
+  theme(panel.background = element_blank(),
+        axis.line = element_line(color="black"),
+        axis.text.x = element_text(color = "black", size = 12, vjust=0.5),
+        axis.text.y = element_blank(),
+        axis.title.x = element_text(color="black", size=14, vjust=0.5),
+        axis.title.y = element_text(color='black', size=14, hjust=0.5),
+        legend.title = element_blank())
+
+fig
+
+ggsave('sup_fig02.pdf', fig)
+```
+
+## Calculate mean/std time differences from fMRI date
+```{r, echo = FALSE}
+alldates$abs_diff <- abs(alldates$time_diff)
+alldates %>% group_by(age_group, modality) %>% 
+  summarise(across(c(abs_diff), .f = list(mean = mean, sd = sd), na.rm=TRUE))
+
+```

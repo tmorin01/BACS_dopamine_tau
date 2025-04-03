@@ -1,0 +1,156 @@
+---
+title: "Fig. S1 - Demographics & Participant Attrition"
+author: "Tom Morin"
+date: "2025-04-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+
+df <- read_csv('data_sup_fig01.csv')
+```
+
+## Count nubmer of Older Adults and Younger Adults
+```{r, echo = FALSE}
+# Count nubmer of Older Adults and Younger Adults
+df %>% 
+  group_by(age_group) %>%
+  summarize(
+    n = n()
+)
+```
+
+## Demographics for older and younger adults with acceptable memory data
+```{r, echo = FALSE}
+# Demographics for older and younger adults with acceptable memory data
+df %>%
+  filter(exclude_memory == 0) %>%
+  group_by(age_group) %>%
+  summarize(
+    n = n(),
+    pct_female = sum(sex == 'F')/n,
+    mean_age = mean(age, na.rm = T),
+    sd_age = sd(age, na.rm = T),
+    mean_yrs_edu = mean(yrs_edu, na.rm = T),
+    sd_yrs_edu = sd(yrs_edu, na.rm = T)
+  )
+```
+
+## Demographics for older and younger adults with acceptable fMRI data
+```{r, echo = FALSE}
+# Demographics for older and younger adults with acceptable fMRI data
+df %>%
+  filter(exclude_memory == 0, exclude_fmri == 0) %>%
+  group_by(age_group) %>%
+  summarize(
+    n = n(),
+    pct_female = sum(sex == 'F')/n,
+    mean_age = mean(age, na.rm = T),
+    sd_age = sd(age, na.rm = T),
+    mean_yrs_edu = mean(yrs_edu, na.rm = T),
+    sd_yrs_edu = sd(yrs_edu, na.rm = T)
+  )
+```
+
+## Demographics for older and younger adults with acceptable FMT data
+```{r, echo = FALSE}
+# Demographics for older and younger adults with acceptable FMT data
+df %>%
+  filter(exclude_fmt == 0) %>%
+  group_by(age_group) %>%
+  summarize(
+    n = n(),
+    pct_female = sum(sex == 'F')/n,
+    mean_age = mean(age, na.rm = T),
+    sd_age = sd(age, na.rm = T),
+    mean_yrs_edu = mean(yrs_edu, na.rm = T),
+    sd_yrs_edu = sd(yrs_edu, na.rm = T)
+  )
+```
+
+## Demographics for older adults with acceptable FTP data
+```{r, echo = FALSE}
+# Demographics for older adults with acceptable FTP data
+df %>%
+  filter(exclude_ftp == 0) %>%
+  summarize(
+    n = n(),
+    pct_female = sum(sex == 'F')/n,
+    mean_age = mean(age, na.rm = T),
+    sd_age = sd(age, na.rm = T),
+    mean_yrs_edu = mean(yrs_edu, na.rm = T),
+    sd_yrs_edu = sd(yrs_edu, na.rm = T)
+  )
+```
+
+## Demographics for older adults by PiB Status
+```{r, echo = FALSE}
+# Demographics for older adults by PiB Status
+df <- df %>% mutate(pib_status = case_when(pib_dvr < 1.065 ~ 'PiB-',
+                                           pib_dvr >= 1.065 ~ 'PiB+'))
+  
+df %>%  
+  filter(exclude_memory == 0, exclude_pib == 0) %>%
+  group_by(pib_status) %>%
+  summarize(
+    n = n(),
+    pct_female = sum(sex == 'F')/n,
+    mean_age = mean(age, na.rm = T),
+    sd_age = sd(age, na.rm = T),
+    mean_yrs_edu = mean(yrs_edu, na.rm = T),
+    sd_yrs_edu = sd(yrs_edu, na.rm = T)
+  )
+```
+
+## Demographics for older adults by Jack Status
+```{r, echo = FALSE}
+# Demographics for older adults by Jack Status
+df <- df %>% mutate(tau_status = case_when(ftp_braak34_suvr < 1.26 ~ 'Tau-',
+                                           ftp_braak34_suvr >= 1.26 ~ 'Tau+'),
+                    jack_status = case_when(pib_status == 'PiB-' & tau_status == 'Tau-' ~ 'Healthy',
+                                            pib_status == 'PiB-' & tau_status == 'Tau+' ~ 'PART',
+                                            pib_status == 'PiB+' & tau_status == 'Tau-' ~ 'Jack A',
+                                            pib_status == 'PiB+' & tau_status == 'Tau+' ~ 'Jack B',
+                                            is.na(pib_status) & tau_status == 'Tau-' ~ 'Healthy',
+                                            is.na(pib_status) & tau_status == 'Tau+' ~ 'PART',
+                                            pib_status == 'PiB-' & is.na(tau_status) ~ 'Healthy',
+                                            pib_status == 'PiB+' & is.na(tau_status) ~ 'Jack A'))
+  
+df %>%  
+  filter(exclude_memory == 0, age_group == 'Older\nAdults') %>%
+  group_by(jack_status) %>%
+  summarize(
+    n = n(),
+    pct_female = sum(sex == 'F')/n,
+    mean_age = mean(age, na.rm = T),
+    sd_age = sd(age, na.rm = T),
+    mean_yrs_edu = mean(yrs_edu, na.rm = T),
+    sd_yrs_edu = sd(yrs_edu, na.rm = T)
+  )
+
+```
+
+## Demographics for older adults by Biomarker Group
+```{r, echo = FALSE}
+# Demographics for older adults by Biomarker Group
+df <- df %>% mutate(biomarker_group = case_when(jack_status == 'Healthy' ~ 'Normal Aging',
+                                                jack_status == 'PART' ~ 'Normal Aging',
+                                                jack_status == 'Jack A' ~ 'Preclinical AD',
+                                                jack_status == 'Jack B' ~ 'Preclinical AD'))
+
+df %>%
+  filter(exclude_memory == 0, age_group == 'Older\nAdults') %>%
+  group_by(biomarker_group) %>%
+  summarize(
+    n = n(),
+    pct_female = sum(sex == 'F')/n,
+    mean_age = mean(age, na.rm = T),
+    sd_age = sd(age, na.rm = T),
+    mean_yrs_edu = mean(yrs_edu, na.rm = T),
+    sd_yrs_edu = sd(yrs_edu, na.rm = T)
+  )
+
+```

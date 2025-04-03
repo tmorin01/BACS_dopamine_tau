@@ -1,0 +1,114 @@
+---
+title: "Fig S7 - Positivity Effect and Tau Burden"
+author: "Tom Morin"
+date: "2025-04-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load Libraries
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(lme4)
+library(lmerTest)
+
+# Set colorscales
+jack_status_cscale <- scale_color_manual(values = c("#549e3e", "#323690", "#B6357B"))
+jack_status_fscale <- scale_fill_manual(values = c("#549e3e", "#323690", "#B6357B"))
+
+df <- read_csv('data_sup_fig07.csv')
+
+df$tau_status <- factor(df$tau_status, levels = c('Younger\nAdults', 
+                                                  'Tau-', 'Tau+'))
+```
+
+## Plot Panel A: Positivity Index vs. Tau Burden
+```{r, echo = FALSE}
+figA <- df %>% 
+  ggplot(aes(x = ftp_braak34_suvr, y = pos_index)) +
+  geom_point() +
+  geom_smooth(method = 'lm', limit = 0.9, linewidth = 2) +
+  theme_classic() +
+  xlab(bquote('[18F]FTP SUVR\n(Braak III/IV Regions)')) +
+  ylab(bquote(atop('Positivity Index', (H[Rew] - H[Loss])/(H[Rew] + H[Loss])))) +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      aspect.ratio = 1)
+
+figA
+```
+
+## Linear Model to test for relationship between tau burden and positivity index
+```{r, echo = FALSE}
+# Stats for Panel A
+
+# Simplest model
+lm1 <- lm(pos_index ~ ftp_braak34_suvr + age + sex + yrs_edu, data = df)
+summary(lm1)
+```
+
+## Repeat analysis while accoutning for learning performance
+```{r, echo = FALSE}
+# Model accounting for learning accuracy
+lm2 <- lm(pos_index ~ ftp_braak34_suvr + learning_RewVsLoss, data = df)
+summary(lm2)
+
+```
+
+## Plot Panel B: FMT vs. Positivity Index, by Tau Burden
+```{r, echo = FALSE}
+figB <- df %>% filter(!is.na(tau_status)) %>%
+  ggplot(aes(x = fmt_ki_vst, y = pos_index, group = tau_status,
+             color = tau_status, fill = tau_status)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = 'lm', limit = 0.9, linewidth = 2) +
+  scale_fill_manual('[18F]FTP Status', values = c("#549e3e", "#323690", "#B6357B")) +
+  scale_color_manual('[18F]FTP Status', values = c("#549e3e", "#323690", "#B6357B")) +
+  theme_classic() +
+  xlab(bquote('[18F]FMT Ki\n(Ventral Striatum)')) +
+  ylab('\u0394 d\' (Reward vs. Loss)') +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      aspect.ratio = 1)
+
+figB
+```
+
+## Linear Model: Interaction between FMT and Tau Burden on Positivity index?
+```{r, echo = FALSE}
+# Stats for Panel B
+lm1 <- lm(pos_index ~ fmt_ki_vst*ftp_braak34_suvr + age + sex + yrs_edu, 
+          data = df %>% filter(!is.na(ftp_braak34_suvr)))
+summary(lm1)
+```
+
+## Repeat analysis, accounting for learning performance
+```{r, echo = FALSE}
+# Model accounting for learning accuracy
+lm2 <- lm(pos_index ~ fmt_ki_vst*ftp_braak34_suvr + age + sex + yrs_edu + learning_RewVsLoss, 
+          data = df %>% filter(!is.na(ftp_braak34_suvr)))
+summary(lm2)
+
+```
+
+
+```{r, echo = FALSE}
+pos_fig <- ggarrange(figA, figB, 
+          ncol = 2, 
+          labels = c('A', 'B'),
+          widths = c(0.6, 1))
+
+ggsave(pos_fig, filename = 'sup_fig07.pdf', width = 6, height = 3, units = 'in')
+pos_fig
+```

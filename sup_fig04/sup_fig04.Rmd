@@ -1,0 +1,161 @@
+---
+title: "Fig S4 - Tau Burden vs. Memory/Learning"
+author: "Tom Morin"
+date: "2024-07-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load Libraries
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(lme4)
+library(lmerTest)
+library(ggsci)
+
+# Set colorscales
+npg_pal <- get_palette(palette = 'npg', 3)
+npg_RL <- c(npg_pal[1], npg_pal[3])
+
+# Read in data
+data_AC <- read_csv('data_sup_fig04ac.csv')
+data_BD <- read_csv('data_sup_fig04bd.csv')
+```
+
+## Plot Panel A: Tau Burden vs. Overall Memory
+```{r, echo = FALSE}
+# PANEL A: Memory Overall vs. tau
+figA <- data_AC %>% 
+  ggplot(aes(x = ftp_braak34_suvr, y = dprime_total)) +
+  geom_point() +
+  geom_smooth(method = 'lm', limit = 0.9, linewidth = 2) +
+  theme_classic() +
+  xlab(bquote('[18F]FTP SUVR\n(Braak 3/4 Regions)')) +
+  ylab('d\'') +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      aspect.ratio = 1)
+
+figA
+```
+
+## Linear Mode: Tau Burden vs. Overall Memory
+```{r, echo = FALSE}
+print("+---------- Linear model ----------+")
+dprime_mod <- lm(dprime_total ~ ftp_braak34_suvr + age + sex + yrs_edu,
+                   data = data_AC)
+summary(dprime_mod)
+```
+
+## Plot Panel B: Tau Burden vs. Valence-Specific Memory
+```{r, echo = FALSE}
+# PANEL B: Memory vs. tau by valence
+figB <- data_BD %>% 
+  ggplot(aes(x = ftp_braak34_suvr, y = dprime, color = valence)) +
+  geom_point() +
+  geom_smooth(method = 'lm', limit = 0.9, linewidth = 2) +
+  theme_classic() +
+  facet_wrap(.~valence) +
+  scale_color_npg() +
+  xlab(bquote('[18F]FTP SUVR\n(Braak 3/4 Regions)')) +
+  ylab('d\'') +
+  theme(panel.background = element_blank(),
+      legend.position = 'none',
+      axis.line = element_line(color = 'black'),
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      aspect.ratio = 1)
+
+figB
+```
+
+## Linear Mixed Effects Model: Tau Burden vs. Valence-Specific Memory
+```{r, echo = FALSE}
+# PANEL B: Stats
+print("+---------- Linear Mixed Effects Model ----------+")
+dprime_mod <- lmer(dprime ~ valence*ftp_braak34_suvr + age + sex + yrs_edu + (1 | subject), 
+                   data_BD)
+summary(dprime_mod)
+```
+
+## Plot Panel C: Tau Burden vs. Overall Learning Performance
+```{r, echo = FALSE}
+# PANEL C: Learning Overall vs. tau
+figC <- data_AC %>% 
+  ggplot(aes(x = ftp_braak34_suvr, y = learning_total)) +
+  geom_point() +
+  geom_smooth(method = 'lm', limit = 0.9, linewidth = 2) +
+  theme_classic() +
+  xlab(bquote('[18F]FTP SUVR\n(Braak 3/4 Regions)')) +
+  ylab('Accuracy During Learning') +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      aspect.ratio = 1)
+
+figC
+```
+
+## Linear Model: Tau Burden vs. Overall Learning Performance
+```{r, echo = FALSE}
+print("+---------- Linear model ----------+")
+dprime_mod <- lm(learning_total ~ ftp_braak34_suvr + age + sex + yrs_edu,
+                   data = data_AC)
+summary(dprime_mod)
+```
+
+## Plot Panel D: Tau Burden vs. Valence-Specific Learning Performance
+```{r, echo = FALSE}
+# PANEL D: Learning vs. tau by valence
+figD <- data_BD %>% 
+  ggplot(aes(x = ftp_braak34_suvr, y = learning, color = valence)) +
+  geom_point() +
+  geom_smooth(method = 'lm', limit = 0.9, linewidth = 2) +
+  theme_classic() +
+  facet_wrap(.~valence) +
+  scale_color_npg() +
+  xlab(bquote('[18F]FTP SUVR\n(Braak 3/4 Regions)')) +
+  ylab('Accuracy During Learning') +
+  theme(panel.background = element_blank(),
+      legend.position = 'none',
+      axis.line = element_line(color = 'black'),
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      aspect.ratio = 1)
+
+figD
+```
+
+## Linear Mixed Effects Model: Tau Burden vs. Valence-Specific Learning Performance
+```{r, echo = FALSE}
+print("+---------- Linear Mixed Effects Model ----------+")
+dprime_mod <- lmer(learning ~ valence*ftp_braak34_suvr + age + sex + yrs_edu + (1 | subject), 
+                   data_BD)
+summary(dprime_mod)
+```
+
+## Plot entire Figure S4
+```{r, echo = FALSE}
+behavioral_fig <- ggarrange(figA, figB, figC, figD,
+          ncol = 2, nrow = 2,
+          widths = c(0.33, 0.67),
+          labels = c('A', 'B', 'C', 'D'))
+
+ggsave(behavioral_fig, filename = 'sup_fig04.pdf', width = 6.5, height = 6, units = 'in')
+
+behavioral_fig
+```

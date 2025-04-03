@@ -1,0 +1,188 @@
+---
+title: "Positivity Effect"
+author: "Tom Morin"
+date: "2024-07-31"
+output: html_document
+---
+
+```{r, echo = FALSE}
+# Load Libraries
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(lme4)
+library(lmerTest)
+library(lsmeans)
+
+# Set colorscales
+age_group_cscale <- scale_color_manual(values = c("#549e3e", "#643f95"))
+age_group_fscale <- scale_fill_manual(values = c("#549e3e", "#643f95"))
+
+jack_status_cscale <- scale_color_manual(values = c("#549e3e", "#323690", "#B6357B"))
+jack_status_fscale <- scale_fill_manual(values = c("#549e3e", "#323690", "#B6357B"))
+
+healthy_cscale <- scale_color_manual(values = c("#549e3e", "#323690"))
+healthy_fscale <- scale_fill_manual(values = c("#549e3e", "#323690"))
+
+npg_pal <- get_palette(palette = 'npg', 3)
+npg_RL <- c(npg_pal[1], npg_pal[3])
+
+# Read in data
+data_A <- read_csv('data_fig4a.csv')
+data_A$age_group <- factor(data_A$age_group, levels = c('Younger\nAdults',
+                                                        'Older\nAdults'))
+data_A$biomarker_group <- factor(data_A$biomarker_group, levels = c('Younger\nAdults',
+                                                                    'Normal\nAging',
+                                                                    'Preclinical\nAD'))
+data_BC <- read_csv('data_fig4bc.csv')
+data_BC$age_group <- factor(data_BC$age_group, levels = c('Younger\nAdults',
+                                                        'Older\nAdults'))
+data_BC$biomarker_group <- factor(data_BC$biomarker_group, levels = c('Younger\nAdults',
+                                                                    'Normal\nAging',
+                                                                    'Preclinical\nAD'))
+```
+
+## Plot Panel A: Age-related positivity effect
+```{r, echo = FALSE}
+# PANEL A: Positivity Effect
+age_comparisons = list(c('Older\nAdults', 'Younger\nAdults'))
+biomarker_group_comparisons <- list(c('Younger\nAdults', 'Normal\nAging'),
+                                c('Younger\nAdults', 'Preclinical\nAD'))
+
+figA <- data_A %>%
+  ggplot(aes(x = age_group, y = pos_index, color=age_group, fill=age_group)) +
+  geom_hline(yintercept = 0) +
+  geom_violin(alpha = 0.5, linewidth = 1) +
+  geom_jitter(alpha = 0.5, size = 2, position = position_jitterdodge(0.2)) +
+  stat_summary(geom = 'pointrange', fun.data = 'mean_cl_boot', size = 1, linewidth = 2) +
+  age_group_cscale +
+  age_group_fscale +
+  xlab('') +
+  ylab(bquote(atop('Positivity Index', (H[Rew] - H[Loss])/(H[Rew] + H[Loss])))) +
+  theme_classic() +
+  stat_compare_means(comparisons = age_comparisons, 
+                     label = 'p.signif', 
+                     size = 5,
+                     hide.ns = T) +
+  theme(panel.background = element_blank(),
+        axis.line = element_line(color = 'black'),
+        legend.position = 'none', 
+        axis.text.x = element_text(color = 'black', size = 8),
+        axis.text.y = element_text(color = 'black', size = 8),
+        axis.title.x = element_text(color = 'black', size = 10),
+        axis.title.y = element_text(color = 'black', size = 10),
+        legend.title = element_blank()
+    
+  )
+
+figA
+```
+
+# T-test and linear models: Age group difference in positivity index
+```{r, echo = FALSE}
+t_test(data_A, pos_index ~ age_group)
+
+# PANEL C STATS MODELS:
+mod <- lm(pos_index ~ biomarker_group, data = data_A)
+summary(mod)
+
+mod_learning <- lm(pos_index ~ biomarker_group + learning_RewVsLoss, 
+                   data = data_A)
+summary(mod_learning)  
+```
+
+## Plot Panel B: Interaction between biomarker group and FMT on Positivity Index
+```{r, echo = FALSE}
+figB <- data_BC %>%
+  ggplot(aes(x = fmt_ki_vst, y = pos_index, group = biomarker_group,
+             color = biomarker_group, fill = biomarker_group)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = 'lm', level = 0.9, linewidth = 2) +
+  jack_status_cscale +
+  jack_status_fscale +
+  theme_classic() +
+  xlab(bquote('[18F]FMT Ki\n(Ventral Striatum)')) +
+  ylab(bquote(atop('Positivity Index', (H[Rew] - H[Loss])/(H[Rew] + H[Loss])))) +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      legend.position = 'none', 
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      legend.title = element_blank())
+
+figB
+```
+
+## Linear Model: Interaction between Biomarker Group and FMT on Positivity Index
+```{r, echo = FALSE}
+# Stats for Panel B
+
+# Simplest model
+lm1 <- lm(pos_index ~ fmt_ki_vst*biomarker_group, data = data_BC)
+summary(lm1)
+
+lm1 <- lm(pos_index ~ fmt_ki_vst*age_group, data = data_BC)
+summary(lm1)
+slopes <- lstrends(lm1, ~age_group, var = 'fmt_ki_vst')
+summary(slopes)
+pairs(slopes)
+```
+
+## Repeate Analysis, accounting for learning performance
+```{r, echo = FALSE}
+# Model accounting for learning accuracy
+lm2 <- lm(pos_index ~ fmt_ki_vst*biomarker_group + learning_RewVsLoss,
+          data = data_BC)
+summary(lm2)
+
+```
+
+## Plot Panel C: Quadratic relationship?
+```{r, echo = FALSE}
+figC <- data_BC %>%
+  ggplot(aes(x = fmt_ki_vst, y = pos_index)) +
+  geom_smooth(method = 'lm', formula = y ~ x + I(x^2), linewidth = 2, color = 'gray') +
+  geom_point(aes(color = biomarker_group, fill = biomarker_group), alpha = 0.5) +
+  geom_smooth(method = 'lm', aes(color = biomarker_group), linewidth = 1.5, 
+              linetype = 'dashed', se = F) +
+  jack_status_cscale +
+  jack_status_fscale +
+  theme_classic() +
+  xlab(bquote('[18F]FMT Ki\n(Ventral Striatum)')) +
+  ylab(bquote(atop('Positivity Index', (H[Rew] - H[Loss])/(H[Rew] + H[Loss])))) +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      legend.position = 'none', 
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      legend.title = element_blank())
+
+figC
+```
+
+## Quadratic Regression: FMT signal vs. Positivity Index
+```{r, echo = FALSE}
+quad_all <- lm(pos_index ~ fmt_ki_vst + I(fmt_ki_vst^2), 
+                   data = data_BC %>% filter(!is.na(fmt_ki_vst)))
+summary(quad_all)
+```
+
+## Plot entire Figure 4
+```{r, echo = FALSE}
+blank <- ggplot() + theme_void()
+
+pos_fig <- ggarrange(
+             ggarrange(figA, figB, blank, nrow = 1,
+                       widths = c(1, 1, 0), labels = c('A', 'B', '')),
+             ggarrange(blank, figC, blank, nrow = 1,
+                       widths = c(0.5, 1, 0.5), labels = c('', 'C', '')),
+            nrow = 2
+)
+
+ggsave(pos_fig, filename = 'fig4.pdf', width = 6, height = 6, units = 'in')
+pos_fig
+```

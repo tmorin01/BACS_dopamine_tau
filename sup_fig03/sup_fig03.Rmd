@@ -1,0 +1,130 @@
+---
+title: "Fig. S3 - Performance During Task Learning Phase"
+author: "Tom Morin"
+date: "2025-04-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE}
+# Load Libraries
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+
+# Set colorscales
+npg_pal <- get_palette(palette = 'npg', 3)
+npg_RL <- c(npg_pal[1], npg_pal[3])
+
+# Read in data
+df <- read_csv('data_sup_fig03.csv')
+df$age_group <- factor(df$age_group, levels = c('Younger\nAdults',
+                                                'Older\nAdults'))
+df$biomarker_group <- factor(df$biomarker_group, levels = c('Younger\nAdults',
+                                                'Normal\nAging',
+                                                'Preclinical\nAD'))
+```
+
+## Does learning performance differ across age groups/valences?
+```{r, echo = FALSE}
+# PANEL A: Stats
+print("+---------- Linear Mixed Effects Model ----------+")
+learning_mod <- lmer(learning ~ age_group*valence + (1 | subject), 
+                   df)
+summary(learning_mod)
+
+print("+---------- Post-Hoc Paired T-test Tests ----------+")
+emm1 = emmeans(learning_mod, specs = pairwise ~ valence|age_group,
+               type = 'repsonse', adjust = 'none')
+# No significant pairwise contrasts
+#emm1_contrasts <- emm1$contrasts %>% rbind(adjust = 'none')
+#emm1_contrasts <- as.data.frame(emm1_contrasts) %>% 
+#  separate(col = contrast, into = c('group1', 'group2'), sep = ' - ') %>%
+#  filter(p.value < 0.05) %>%
+#  mutate(sig = case_when(p.value < 0.05 ~ '*')) %>%
+#  add_xy_position(data = df, formula = learning ~ age_group,
+#                  x = "age_group", group = 'valence', fun = "mean_se", dodge = 0.8)
+emm1$contrasts
+```
+
+## Plot Fig S3, Panel A
+```{r, echo = FALSE}
+# PANEL A: Memory in YA vs. OA
+figA <- ggbarplot(df, 
+               x = "age_group", 
+               y = "learning", 
+               fill = "valence",
+               alpha = 0.7,
+               palette = "npg", 
+               add = "mean_se", 
+               xlab = "",
+               ylab = "Proportion Correct",
+               ylim = c(0, 1.0),
+               position = position_dodge(0.8)) +
+        geom_hline(yintercept = 0) +
+        geom_jitter(aes(color = valence, fill = valence), alpha = 0.5,
+              position = position_jitterdodge(0.1))  +
+        theme(legend.position = 'none')
+figA
+```
+## Does learning performance differ across biomarker group/valence in older adults?
+```{r, echo = FALSE}
+# PANEL B: Stats
+print("+---------- Linear Mixed Effects Model ----------+")
+learning_mod <- lmer(learning ~ valence*biomarker_group + age + sex + yrs_edu + (1 | subject), 
+                   df %>% filter(biomarker_group != 'Younger\nAdults'))
+summary(learning_mod)
+
+print("+---------- Post-Hoc Paired T-test Tests ----------+")
+emm2 = emmeans(learning_mod, specs = pairwise ~ valence|biomarker_group,
+               type = 'repsonse', adjust = 'none')
+# No significant pairwise contrasts
+#emm1_contrasts <- emm1$contrasts %>% rbind(adjust = 'none')
+#emm1_contrasts <- as.data.frame(emm1_contrasts) %>% 
+#  separate(col = contrast, into = c('group1', 'group2'), sep = ' - ') %>%
+#  filter(p.value < 0.05) %>%
+#  mutate(sig = case_when(p.value < 0.05 ~ '*')) %>%
+#  add_xy_position(data = df, formula = learning ~ age_group,
+#                  x = "age_group", group = 'valence', fun = "mean_se", dodge = 0.8)
+emm2$contrasts
+```
+
+## Plot Fig S3, Panel B
+```{r, echo = FALSE}
+data_B <- df %>% filter(biomarker_group != 'Younger\nAdults')
+
+# PANEL B: Memory for all Conditions
+figB <- ggbarplot(data_B, 
+               x = "biomarker_group", 
+               y = "learning", 
+               fill = "valence",
+               alpha = 0.7,
+               palette = "npg", 
+               add = "mean_se", 
+               xlab = "",
+               ylab = "Proportion Correct",
+               ylim = c(0, 1.0),
+               position = position_dodge(0.8)) +
+        geom_hline(yintercept = 0) +
+        geom_jitter(aes(color = valence, fill = valence), alpha = 0.5,
+              position = position_jitterdodge(0.1)) +
+        theme(legend.position = 'none')
+figB
+```
+
+## Plot full Figure S3
+```{r, echo = FALSE}
+behavioral_fig <- ggarrange(figA, figB,
+          ncol = 2,
+          labels = c('A', 'B'))
+
+ggsave(behavioral_fig, filename = 'sup_fig03.pdf', width = 6.5, height = 2.5, units = 'in')
+
+behavioral_fig
+```

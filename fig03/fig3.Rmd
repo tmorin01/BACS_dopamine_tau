@@ -1,0 +1,164 @@
+---
+title: "Fig. 3: fMRI vs. Memory"
+author: "Tom Morin"
+date: "2025-04-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE}
+# Load Libraries
+library(tidyverse)
+library(ggpubr)
+library(lme4)
+library(lmerTest)
+library(rstatix)
+
+# Set colorscales
+biomarker_group_cscale <- scale_color_manual(values = c("#549e3e", "#323690", "#B6357B"))
+biomarker_group_fscale <- scale_fill_manual(values = c("#549e3e", "#323690", "#B6357B"))
+
+# Read data
+data_BC <- read_csv('data_fig3bc.csv')
+
+data_BC$biomarker_group <- factor(data_BC$biomarker_group,
+                                  levels = c('Younger\nAdults', 'Normal\nAging',
+                                             'Preclinical\nAD'))
+```
+## Plot Panel B: Remembered vs. Forgotten BOLD signal contrast, across biomarker groups
+```{r, echo = FALSE}
+# Panel B
+within_ttests <- data_BC %>%
+  group_by(biomarker_group) %>%
+  summarise(P = t.test(bold, mu = 0)$p.value,
+            Sig = ifelse(P < 0.05, "*", ""),
+            MaxWidth = max(bold))
+
+figB <- ggbarplot(data_BC, 
+                   x = "biomarker_group", 
+                   y = "bold", 
+                   fill = "biomarker_group", 
+                   alpha = 0.5,
+                   palette = c("#549e3e", "#323690", "#B6357B"), 
+                   add = "mean_se", 
+                   position = position_dodge(0.8),
+                   xlab = '', 
+                   ylab = 'fMRI Beta Coefficient\n(Remembered vs. Forgotten)', 
+                   legend = 'none',
+                   order = c('Younger\nAdults', 'Normal\nAging', 
+                             'Preclinical\nAD')) +
+  geom_hline(yintercept = 0) +
+  geom_jitter(aes(color = biomarker_group, fill = biomarker_group), alpha = 0.5,
+              position = position_jitterdodge(0.1)) +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      legend.position = 'none', 
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      legend.title = element_blank(),
+      aspect.ratio = 1)
+
+group.stat.test <- data_BC %>% 
+  t_test(bold ~ biomarker_group, detailed = TRUE, paired = FALSE)
+p.group.stat.test <- group.stat.test %>%
+  filter(p < 0.05) %>%
+  add_xy_position(x = "biomarker_group", fun = "mean_se", dodge = 0.8)
+p.group.stat.test <- p.group.stat.test %>% mutate(p.signif = ifelse(p < 0.05, "*", ""))
+
+figB <- figB + stat_pvalue_manual(p.group.stat.test, 
+                                  label = 'p.signif', 
+                                  tip.length = 0.01,
+                                  step.increase = 0.02,
+                                  y.position = 0.4,
+                                  size = 6)
+figB
+```
+
+## Are there group differences in parahippocampal activation?
+```{r, echo = FALSE}
+# Stats for Panel A
+
+# All subjects, simple model
+lm1 <- lm(bold ~ biomarker_group, data = data_BC)
+print('==========================================================================')
+summary(lm1)
+print('==========================================================================')
+```
+
+## Post-hoc T-tests
+```{r, echo = FALSE}
+group.stat.test <- data_BC %>% 
+  t_test(bold ~ biomarker_group, detailed = TRUE, paired = FALSE,
+         p.adjust.method = 'none')
+
+group.stat.test
+```
+
+## Repeat analysis, controlling for learning performance
+```{r, echo = FALSE}
+# All subjects: memory, learning regressed
+lm2 <- lm(bold ~ biomarker_group + total_learning, data = data_BC)
+print('==========================================================================')
+summary(lm2)
+print('==========================================================================')
+```
+
+## Plot Panel C: FMT vs BOLD contrast, by biomarker group
+```{r, echo = FALSE}
+# Panel C
+figC <- data_BC %>%
+  ggplot(aes(x = fmt_ki_vst, y = bold, group = biomarker_group, 
+             color = biomarker_group, fill=biomarker_group)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = 'lm', level = 0.9, linewidth = 2) +
+  biomarker_group_cscale +
+  biomarker_group_fscale +
+  theme_classic() +
+  xlab(bquote('[18F]FMT Ki\n(Ventral Striatum)')) +
+  ylab('fMRI Beta Coefficient\n(Remembered vs. Forgotten)') +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      legend.position = 'none', 
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      legend.title = element_blank(),
+      aspect.ratio = 1)
+
+figC
+```
+
+## Linear Model: Does Biomarker Group mediate the relationship between FMT and BOLD signal?
+```{r, echo = FALSE}
+# Stats for Panel B
+# All subjects, simple model
+lm1 <- lm(bold ~ biomarker_group*fmt_ki_vst, data = data_BC)
+print('==========================================================================')
+summary(lm1)
+print('==========================================================================')
+```
+
+## Repeat analysis, controling for learning performance
+```{r, echo = FALSE}
+# All subjects: memory, learning regressed
+lm2 <- lm(bold ~ biomarker_group*fmt_ki_vst + total_learning, data = data_BC)
+print('==========================================================================')
+summary(lm2)
+print('==========================================================================')
+```
+
+## Plot entire Figure 3bc
+```{r, echo = FALSE}
+fmri_mem <- ggarrange(figB, figC, 
+          ncol = 2, 
+          labels = c('B', 'C'))
+
+ggsave(fmri_mem, filename = 'fmri_mem.pdf', width = 6, height = 3, units = 'in')
+fmri_mem
+```
