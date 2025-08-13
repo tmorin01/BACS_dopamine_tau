@@ -1,5 +1,5 @@
 # BACS_dopamine_tau
-Anonymized data and code for: "Dopamine-Driven Memory Effects in Healthy Aging are Disrupted by Preclinical Alzheimer's Disease"
+Anonymized data and code for: "Alzheimer’s disease pathologies affect dopaminergic neural mechanisms of memory"
 
 ## Contents
 Each folder contains the data and code needed to generate figures for the manuscript.
