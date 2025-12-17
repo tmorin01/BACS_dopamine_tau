@@ -18,6 +18,7 @@ library(lmerTest) # v3.1.3
 library(rstatix) # v0.7.2
 library(emmeans) # v1.10.0
 library(lsmeans) #2.30.2
+library(sjPlot) #v2.9.0
 
 # Set colorscales
 biomarker_group_cscale <- scale_color_manual(values = c("#549e3e", "#323690", "#B6357B"))
@@ -101,7 +102,7 @@ figC <- data_BCD %>% filter(age_group == 'Older\nAdults') %>%
   geom_smooth(method = 'lm', color = "#643f95", fill = "#643f95",
               linewidth = 2, level = 0.9) +
   theme_classic() +
-  ylab('[18F]PiB DVR\n(Cortex)') +
+  ylab('[11C]PiB DVR\n(Cortex)') +
   xlab('[18F]FMT Ki\n(Ventral Striatum)') +
   theme(panel.background = element_blank(),
       axis.line = element_line(color = 'black'),
@@ -131,7 +132,7 @@ figD <- data_BCD %>% filter(age_group == 'Older\nAdults') %>%
   geom_smooth(method = 'lm', color = "#643f95", fill = "#643f95",
               linewidth = 2, level = 0.9) +
   theme_classic() +
-  ylab('[18F]FTP SUVR\n(Braak 3/4 Regions)') +
+  ylab('[18F]FTP SUVR\n(Braak III/IV Regions)') +
   xlab('[18F]FMT Ki\n(Ventral Striatum)') +
   theme(panel.background = element_blank(),
       axis.line = element_line(color = 'black'),
