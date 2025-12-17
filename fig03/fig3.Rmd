@@ -16,6 +16,8 @@ library(ggpubr) # v0.6.0
 library(lme4) # v1.1.32
 library(lmerTest) # v3.1.3
 library(rstatix) # v0.7.2
+library(lsmeans) #2.30.2
+library(sjPlot) #v2.9.0
 
 # Set colorscales
 biomarker_group_cscale <- scale_color_manual(values = c("#549e3e", "#323690", "#B6357B"))
@@ -27,7 +29,18 @@ data_BC <- read_csv('data_fig3bc.csv')
 data_BC$biomarker_group <- factor(data_BC$biomarker_group,
                                   levels = c('Younger\nAdults', 'Normal\nAging',
                                              'Preclinical\nAD'))
+
+data_D <- read_csv('data_fig3d.csv')
+
+data_D$biomarker_group <- factor(data_D$biomarker_group,
+                                  levels = c('Younger\nAdults', 'Normal\nAging',
+                                             'Preclinical\nAD'))
+
+data_D <- data_D %>% mutate(biomarker_group_int = case_when(biomarker_group == 'Younger\nAdults' ~ 0,
+                                                            biomarker_group == 'Normal\nAgers' ~ 1,
+                                                            biomarker_group == 'Preclinical\nAD' ~ 2))
 ```
+
 ## Plot Panel B: Remembered vs. Forgotten BOLD signal contrast, across biomarker groups
 ```{r, echo = FALSE}
 # Panel B
@@ -106,6 +119,56 @@ lm2 <- lm(bold ~ biomarker_group + total_learning, data = data_BC)
 print('==========================================================================')
 summary(lm2)
 print('==========================================================================')
+
+data_BC <- data_BC %>% mutate(biomarker_group_int = case_when(biomarker_group == 'Younger\nAdults' ~ -1,
+                                                              biomarker_group == 'Normal\nAging' ~ 0,
+                                                              biomarker_group == 'Preclinical\nAD' ~ 1))
+
+
+lm1 <- lm(bold ~ biomarker_group_int, data = data_BC)
+lm2 <- lm(bold ~ biomarker_group_int*dprime_total, data = data_BC)
+lm3 <- lm(bold ~ biomarker_group_int*total_learning, data = data_BC)
+lm4 <- lm(bold ~ biomarker_group_int*dprime_total + biomarker_group_int*total_learning, data = data_BC)
+
+tab_model(lm1, lm2, lm4)
+```
+
+## Is RvF BOLD signal contrast related to memory performance?
+```{r, echo = FALSE}
+modA <- lm(dprime_total ~ bold*biomarker_group_int + sex, data = data_BC)
+summary(modA)
+
+slopes <- emtrends(modA, ~ biomarker_group_int, var = 'bold')
+summary(slopes, infer=TRUE)
+
+modB <- lm(dprime_total ~ bold*biomarker_group_int + sex + total_learning, data = data_BC)
+summary(modB)
+
+slopes <- lstrends(modB, ~ biomarker_group_int, var = 'bold')
+summary(slopes, infer=TRUE)
+
+figD <- data_BC %>%
+  ggplot(aes(x = bold, y = dprime_total, group = biomarker_group, 
+             color = biomarker_group, fill=biomarker_group)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = 'lm', level = 0.9, linewidth = 2) +
+  biomarker_group_cscale +
+  biomarker_group_fscale +
+  theme_classic() +
+  xlab(bquote('fMRI Beta Coefficient\n(Remembered vs. Forgotten)')) +
+  ylab('Memory (d\')') +
+  theme(panel.background = element_blank(),
+      axis.line = element_line(color = 'black'),
+      legend.position = 'none', 
+      axis.text.x = element_text(color = 'black', size = 8),
+      axis.text.y = element_text(color = 'black', size = 8),
+      axis.title.x = element_text(color = 'black', size = 10),
+      axis.title.y = element_text(color = 'black', size = 10),
+      legend.title = element_blank(),
+      aspect.ratio = 1)
+figD
+
+tab_model(modA, modB)
 ```
 
 ## Plot Panel C: FMT vs BOLD contrast, by biomarker group
@@ -153,12 +216,13 @@ summary(lm2)
 print('==========================================================================')
 ```
 
-## Plot entire Figure 3bc
+## Plot entire Figure 3bcd
 ```{r, echo = FALSE}
-fmri_mem <- ggarrange(figB, figC, 
-          ncol = 2, 
-          labels = c('B', 'C'))
+fmri_mem <- ggarrange(figB, figD, figC, 
+          ncol = 3, 
+          labels = c('B', 'C', 'D'),
+          align = 'v')
 
-ggsave(fmri_mem, filename = 'fmri_mem.pdf', width = 6, height = 3, units = 'in')
+ggsave(fmri_mem, filename = 'fig3.pdf', width = 6, height = 3, units = 'in')
 fmri_mem
 ```
