@@ -1,7 +1,7 @@
 ---
-title: "Fig s5 - Tau Burden vs. Memory/Learning"
+title: "Fig s1-2cdef - Tau Burden vs. Memory/Learning"
 author: "Tom Morin"
-date: "2024-07-31"
+date: "2025-12-16"
 output: html_document
 ---
 
@@ -21,8 +21,8 @@ npg_pal <- get_palette(palette = 'npg', 3)
 npg_RL <- c(npg_pal[1], npg_pal[3])
 
 # Read in data
-data_AC <- read_csv('data_sup_fig05ac.csv')
-data_BD <- read_csv('data_sup_fig05bd.csv')
+data_AC <- read_csv('data_sup_fig01-2ce.csv')
+data_BD <- read_csv('data_sup_fig01-2df.csv')
 ```
 
 ## Plot Panel A: Tau Burden vs. Overall Memory
@@ -153,9 +153,9 @@ summary(dprime_mod)
 behavioral_fig <- ggarrange(figA, figB, figC, figD,
           ncol = 2, nrow = 2,
           widths = c(0.33, 0.67),
-          labels = c('A', 'B', 'C', 'D'))
+          labels = c('C', 'D', 'E', 'F'))
 
-ggsave(behavioral_fig, filename = 'sup_fig05.pdf', width = 6.5, height = 6, units = 'in')
+ggsave(behavioral_fig, filename = 'sup_fig01-2cdef.pdf', width = 6.5, height = 6, units = 'in')
 
 behavioral_fig
 ```

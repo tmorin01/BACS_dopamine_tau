@@ -8,11 +8,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-library(tidyverse) # v2.0.0
-library(ggplot2) # v3.5.1
-library(lubridate) # v1.9.2
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
 
-alldates <- read_csv('data_sup_fig02.csv')
+alldates <- read_csv('data_sup_fig01-1b.csv')
 ```
 
 
@@ -59,7 +59,8 @@ fig <- alldates %>%
   scale_shape_discrete(labels = c('fMRI', "[18F]FMT", '[18F]Flortaucipir', 
                                   '[11C]PiB')) +
   theme_classic() +
-  theme(panel.background = element_blank(),
+  theme(aspect.ratio = 1,
+        panel.background = element_blank(),
         axis.line = element_line(color="black"),
         axis.text.x = element_text(color = "black", size = 12, vjust=0.5),
         axis.text.y = element_blank(),
@@ -69,7 +70,7 @@ fig <- alldates %>%
 
 fig
 
-ggsave('sup_fig02.pdf', fig)
+ggsave('sup_fig01-1b.pdf', fig)
 ```
 
 ## Calculate mean/std time differences from fMRI date

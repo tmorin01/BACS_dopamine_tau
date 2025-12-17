@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse) # v2.0.0
 
-df <- read_csv('data_sup_fig01.csv')
+df <- read_csv('data_sup_fig01-1a.csv')
 ```
 
 ## Count nubmer of Older Adults and Younger Adults

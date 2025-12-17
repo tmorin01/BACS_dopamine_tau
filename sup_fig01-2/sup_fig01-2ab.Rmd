@@ -1,7 +1,7 @@
 ---
-title: "Fig. S4 - Performance During Task Learning Phase"
+title: "Fig. 1-2ab - Performance During Task Learning Phase"
 author: "Tom Morin"
-date: "2025-04-01"
+date: "2025-12-16"
 output: html_document
 ---
 
@@ -23,7 +23,7 @@ npg_pal <- get_palette(palette = 'npg', 3)
 npg_RL <- c(npg_pal[1], npg_pal[3])
 
 # Read in data
-df <- read_csv('data_sup_fig04.csv')
+df <- read_csv('data_sup_fig01-2ab.csv')
 df$age_group <- factor(df$age_group, levels = c('Younger\nAdults',
                                                 'Older\nAdults'))
 df$biomarker_group <- factor(df$biomarker_group, levels = c('Younger\nAdults',
@@ -118,13 +118,13 @@ figB <- ggbarplot(data_B,
 figB
 ```
 
-## Plot full Figure s4
+## Plot full Figure s1-2ab
 ```{r, echo = FALSE}
 behavioral_fig <- ggarrange(figA, figB,
           ncol = 2,
           labels = c('A', 'B'))
 
-ggsave(behavioral_fig, filename = 'sup_fig04.pdf', width = 6.5, height = 2.5, units = 'in')
+ggsave(behavioral_fig, filename = 'sup_fig01-2ab.pdf', width = 6.5, height = 2.5, units = 'in')
 
 behavioral_fig
 ```
