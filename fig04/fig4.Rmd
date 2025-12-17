@@ -1,7 +1,7 @@
 ---
-title: "Positivity Effect"
+title: "Fig. 4 - Valence Index"
 author: "Tom Morin"
-date: "2024-07-31"
+date: "2025-12-16"
 output: html_document
 ---
 
@@ -12,7 +12,8 @@ library(ggpubr) # v0.6.0
 library(rstatix) # v0.7.2
 library(lme4) # v1.1.32
 library(lmerTest) # v3.1.3
-library(lsmeans) #2.30.2
+library(lsmeans) # v2.30.2
+library(sjPlot) # v2.9.0
 
 # Set colorscales
 age_group_cscale <- scale_color_manual(values = c("#549e3e", "#643f95"))
@@ -20,12 +21,6 @@ age_group_fscale <- scale_fill_manual(values = c("#549e3e", "#643f95"))
 
 jack_status_cscale <- scale_color_manual(values = c("#549e3e", "#323690", "#B6357B"))
 jack_status_fscale <- scale_fill_manual(values = c("#549e3e", "#323690", "#B6357B"))
-
-healthy_cscale <- scale_color_manual(values = c("#549e3e", "#323690"))
-healthy_fscale <- scale_fill_manual(values = c("#549e3e", "#323690"))
-
-npg_pal <- get_palette(palette = 'npg', 3)
-npg_RL <- c(npg_pal[1], npg_pal[3])
 
 # Read in data
 data_A <- read_csv('data_fig4a.csv')
@@ -58,7 +53,7 @@ figA <- data_A %>%
   age_group_cscale +
   age_group_fscale +
   xlab('') +
-  ylab(bquote(atop('Positivity Index', (H[Rew] - H[Loss])/(H[Rew] + H[Loss])))) +
+  ylab(bquote(atop('Valence Index', (H[Rew] - H[Loss])/(H[Rew] + H[Loss])))) +
   theme_classic() +
   stat_compare_means(comparisons = age_comparisons, 
                      label = 'p.signif', 
@@ -102,7 +97,7 @@ figB <- data_BC %>%
   jack_status_fscale +
   theme_classic() +
   xlab(bquote('[18F]FMT Ki\n(Ventral Striatum)')) +
-  ylab(bquote(atop('Positivity Index', (H[Rew] - H[Loss])/(H[Rew] + H[Loss])))) +
+  ylab(bquote(atop('Valence Index', (H[Rew] - H[Loss])/(H[Rew] + H[Loss])))) +
   theme(panel.background = element_blank(),
       axis.line = element_line(color = 'black'),
       legend.position = 'none', 
@@ -133,42 +128,12 @@ pairs(slopes)
 ## Repeate Analysis, accounting for learning performance
 ```{r, echo = FALSE}
 # Model accounting for learning accuracy
+lm1.5 <- lm(pos_index ~ fmt_ki_vst*biomarker_group, data = data_BC)
 lm2 <- lm(pos_index ~ fmt_ki_vst*biomarker_group + learning_RewVsLoss,
           data = data_BC)
 summary(lm2)
 
-```
-
-## Plot Panel C: Quadratic relationship?
-```{r, echo = FALSE}
-figC <- data_BC %>%
-  ggplot(aes(x = fmt_ki_vst, y = pos_index)) +
-  geom_smooth(method = 'lm', formula = y ~ x + I(x^2), linewidth = 2, color = 'gray') +
-  geom_point(aes(color = biomarker_group, fill = biomarker_group), alpha = 0.5) +
-  geom_smooth(method = 'lm', aes(color = biomarker_group), linewidth = 1.5, 
-              linetype = 'dashed', se = F) +
-  jack_status_cscale +
-  jack_status_fscale +
-  theme_classic() +
-  xlab(bquote('[18F]FMT Ki\n(Ventral Striatum)')) +
-  ylab(bquote(atop('Positivity Index', (H[Rew] - H[Loss])/(H[Rew] + H[Loss])))) +
-  theme(panel.background = element_blank(),
-      axis.line = element_line(color = 'black'),
-      legend.position = 'none', 
-      axis.text.x = element_text(color = 'black', size = 8),
-      axis.text.y = element_text(color = 'black', size = 8),
-      axis.title.x = element_text(color = 'black', size = 10),
-      axis.title.y = element_text(color = 'black', size = 10),
-      legend.title = element_blank())
-
-figC
-```
-
-## Quadratic Regression: FMT signal vs. Positivity Index
-```{r, echo = FALSE}
-quad_all <- lm(pos_index ~ fmt_ki_vst + I(fmt_ki_vst^2), 
-                   data = data_BC %>% filter(!is.na(fmt_ki_vst)))
-summary(quad_all)
+tab_model(lm1.5, lm2)
 ```
 
 ## Plot entire Figure 4
@@ -176,13 +141,10 @@ summary(quad_all)
 blank <- ggplot() + theme_void()
 
 pos_fig <- ggarrange(
-             ggarrange(figA, figB, blank, nrow = 1,
-                       widths = c(1, 1, 0), labels = c('A', 'B', '')),
-             ggarrange(blank, figC, blank, nrow = 1,
-                       widths = c(0.5, 1, 0.5), labels = c('', 'C', '')),
-            nrow = 2
+             ggarrange(figA, figB, nrow = 1,
+                       widths = c(1, 1), labels = c('A', 'B'))
 )
 
-ggsave(pos_fig, filename = 'fig4.pdf', width = 6, height = 6, units = 'in')
+ggsave(pos_fig, filename = 'fig4.pdf', width = 6, height = 3, units = 'in')
 pos_fig
 ```
